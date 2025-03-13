@@ -183,7 +183,277 @@ kableone(tab_baseline, smd = TRUE, showAllLevels = FALSE )
 
 After visual inspection, I can see major difference between cases and control in dis_mi_ever 1, dis_stroke ever 0, hs_gen_health 4, smoke_cig_ever 1, dis_cardio_hd_ever 0, wh_contraceptives_ever 1, sdc_gender = 2.
 
+## Naive regression(Adjusting Covariates)
+
+```{r}
+fit_naive <- glm(diabetes ~ hypertension + ALC_EVER + DIS_MI_EVER + DIS_STROKE_EVER+HS_GEN_HEALTH+SMK_CIG_EVER+DIS_CARDIO_HD_EVER+PA_TOTAL_SHORT+WRK_UNABLE+ WRK_STUDENT+ PSE_ADULT_WRK_DURATION+ WH_CONTRACEPTIVES_EVER+ SDC_INCOME+ SDC_EDU_LEVEL_AGE+ SDC_GENDER+ SDC_AGE_CALC, family = "binomial", data = data)
+
+tab_model(fit_naive)
+
+```
+
+Odds ratio for all the variables has been calaculated but I will focus on the treatment variable(hypertension). We can see that after including the covariates in the logistic regression model, the odds of diabetes is 2.86 times higher among those with diabetes. Interesting!. There were confounders causing underestimation of the odd ratio in the previous model. 
+
+
+## Matching using Nearest Neighbor(nn)
+
+### 1:1 NN 
+
+```{r}
+knn_1_1 <- matchit(hypertension ~ ALC_EVER + DIS_MI_EVER + DIS_STROKE_EVER+HS_GEN_HEALTH+SMK_CIG_EVER+DIS_CARDIO_HD_EVER+PA_TOTAL_SHORT+WRK_UNABLE+ WRK_STUDENT+ PSE_ADULT_WRK_DURATION+ WH_CONTRACEPTIVES_EVER+ SDC_INCOME+ SDC_EDU_LEVEL_AGE+ SDC_GENDER+ SDC_AGE_CALC,
+                   data = data,
+                   method = "nearest",
+                   distance = "glm")
+```
+
+```{r}
+summary(knn_1_1, un = FALSE)
+```
+I can see that the standardized mean difference is around 0.00. 
+
+```{r}
+# Displaying the first 6 rows of the matched dataset 
+knn_data <- match.data(knn_1_1)
+
+knn_data[92:96] %>%  # Displaying varirables at position 92 to 96
+  head()
+```
+
+### Summary statistics of propensity score 
+
+```{r}
+summary(knn_data$distance)
+```
+I can see the minimum PS of 0.02, maximum as 0.90 and mean of 0.33 
+
+
+### Histogram of propensity score(distance)
+
+```{r}
+ggplot(data = knn_data, aes(distance)) + 
+        geom_histogram()+
+  labs(title = "Histogram of Propensity score",
+       subtitle = "1:1 NN",
+       x = "propensity score")+
+  theme_minimal()
+```
+we can see the majority of the propensity score is between 0.0 and 0.75 with some outliers. 
+
+
+```{r}
+head(knn_1_1$match.matrix)
+```
+
+### Love plot for the matched dataset 
+
+```{r}
+love_knn <- love.plot(knn_1_1, 
+          binary = "std", 
+          grid = TRUE,
+          thresholds = c(m = .1),
+          colors = c("#a13","blue"))  
+
+plot(love_knn)
+```
+From the plot, it is obvious that the standardized mean differences of the adjusted covariates are distributed close to the 0.0 line and all the values are below the threshold. However, we can observe a wide distribution with some covariates like DIS_MI_0 and 1.  
+
+### Balance plot 
+
+```{r}
+bal.plot(knn_1_1,
+         var.name="distance",
+         which="both",
+         type = "density",
+         colors = c("#a13","blue"))
+```
+In the balance plot, the area of common support in the unadjusted sample, spanning a distance range of 0.00 to 0.75 with a density of up to around 2.5, has been delineated in the adjusted sample but not completely. This indicates that participants with extreme probabilities of receiving or not receiving the treatment have been excluded(not all), thereby enhancing the robustness of the analysis
+
+
+### Density plot 
+
+```{r}
+plot(knn_1_1, type = "density", interactive = FALSE,
+     which.xs = ~ ALC_EVER + DIS_MI_EVER + DIS_STROKE_EVER+HS_GEN_HEALTH+SMK_CIG_EVER+DIS_CARDIO_HD_EVER+PA_TOTAL_SHORT)
+```
+I can see little to no variation in the distribution of ALC_EVER, DIS_MI_EVER, DIS_STROKE_EVER, SMK_CIG_EVER, DIS_CARDIO_HD_EVER after matching. A slight change in distribution was seen HS_GEN_HEALTH after matching. The plot shows there is no gross change in the distribution in unmatched and macthed . 
+
+
+## Generalized Full matching
+
+The first match method used 1:1 nearest neighbor. 
+
+```{r}
+full <- matchit(hypertension  ~  ALC_EVER + DIS_MI_EVER + DIS_STROKE_EVER+HS_GEN_HEALTH+SMK_CIG_EVER+DIS_CARDIO_HD_EVER+PA_TOTAL_SHORT+WRK_UNABLE+ WRK_STUDENT+ PSE_ADULT_WRK_DURATION+ WH_CONTRACEPTIVES_EVER+ SDC_INCOME+ SDC_EDU_LEVEL_AGE+ SDC_GENDER+ SDC_AGE_CALC,
+                   data = data,
+                   method = "quick",
+                   distance = "glm")
+```
+
+method = "quick" performs generalized full matching, which is a form of subclassification wherein all units, both treatment and control (i.e., the "full" sample), are assigned to a subclass and receive at least one match. It uses an algorithm that is extremely fast compared to optimal full matching, which is why it is labeled as "quick", at the expense of true optimality. The method is described in Sävje, Higgins, & Sekhon (2021)[adopted from R help]
+
+```{r}
+summary(full, un = FALSE)
+```
+I can see that the standardized mean difference of all the matched covariates are around 0.00. 
+
+```{r}
+# Displaying the first 6 rows of the matched dataset 
+full_data <- match.data(full)
+
+full_data[92:96] %>%  # Displaying varirables at position 92 to 96
+  head()
+```
+
+### Summary statistics of propensity score 
+
+```{r}
+summary(full_data$distance)
+```
+I can see the minimum PS of 0.019, maximum of 0.90 and mean of 0.24 
+
+
+### Histogram of propensity score(distance)
+
+```{r}
+ggplot(data = full_data, aes(distance)) + 
+        geom_histogram()+
+  labs(title = "Histogram of Propensity score",
+       subtitle = "Generalized full matching",
+       x = "propensity score")+
+  theme_minimal()
+```
+we can see the majority of the propensity score is between 0.0 and 0.6 with some outliers. 
+
+
+###  Love plot for the matched dataset 
+
+```{r}
+love_full <- love.plot(full, 
+          binary = "std", 
+          grid = TRUE,
+          thresholds = c(m = .1),
+          colors = c("#a13","blue"))  
+
+plot(love_full)
+```
+From the plot, it is obvious that the standardized mean differences of the adjusted covariates are distributed close to the 0.0 line and all the values are below the threshold. The distribution is better comapred to the 1:1 NN matched method
+
+### Balance plot of propensity score  
+
+```{r}
+bal.plot(full,
+         var.name="distance",
+         which="both",
+         type = "density",
+         colors = c("#a13","blue"))
+```
+In the balance plot, the area of common support in the unadjusted sample, spanning a distance range of 0.00 to 0.4 with a density of up to 5, has been clearly delineated in the adjusted sample. This indicates that participants with extreme probabilities of receiving or not receiving the treatment have been excluded, thereby enhancing the robustness of the analysis
 
 
 
+```{r}
+plot(full, type = "density", interactive = FALSE,
+     which.xs = ~ ALC_EVER + DIS_MI_EVER + DIS_STROKE_EVER+HS_GEN_HEALTH+SMK_CIG_EVER+DIS_CARDIO_HD_EVER+PA_TOTAL_SHORT)
+```
+I can see little to no variation in the distribution of ALC_EVER, DIS_MI_EVER<DIS_STROKE_EVER, SMK_CIG_EVER, DIS_CARDIO_HD_EVER after matching. A slight change in distribution was seen HS_GEN_HEALTH after matching. The plot shows there is no gross change in the distribution in unmatched and macthed . 
+
+
+### Visualizing weight 
+```{r}
+summary(full_data$weights)
+```
+We can observe extreme weight of 28.36 and minimum of 0.04, however the mean is 1 which shows a reasonable weight distribution 
+
+```{r}
+ggplot(data = full_data, aes(weights)) + 
+        geom_histogram()
+```
+
+We can see majority of weight are distributed around zero with some extreme data points after 5. 
+
+```{r}
+summary(full_data$subclass)
+```
+
+## Selecting the best matching method 
+
+```{r,fig.height=8}
+plot_grid(love_full, love_knn, ncol = 1, nrow = 2, labels = c('Full', 'KNN'))
+```
+I can see majority of the SMD are clustered around zero on the Full method compared to the KNN macthing method. Therefore, I will use the Full matched dataset for the analysis 
+
+
+# **Analysis of the outcome and estimation of the treatment effect**
+
+## Regression no covariates
+
+```{r}
+table(full_data$diabetes)
+
+full_data$diabetes <- as.numeric(full_data$diabetes)
+full_data <- full_data %>%
+	mutate(diabetes = case_when(
+		diabetes == 1 ~ 0,
+		diabetes == 2 ~ 1)) 
+```
+
+
+
+## GEE regresion 
+
+
+```{r}
+fit_no_cov <- geeglm(diabetes ~ hypertension, family=binomial("log"), 
+              data=full_data,
+              weights=weights, ### Weights
+              std.err = 'san.se', ### Equivalent to robust standard errors 
+              id=subclass, #### Group by subclasses or clusters
+              corstr="independence") #### Specify correlation structure
+
+tab_model(fit_no_cov)
+```
+
+After matching, it can be observed that there was no association between hypertension and diabetes.  
+
+
+### Inverse probability of treatment weighting (IPTW)
+
+```{r}
+IPTW <- weightit(unemployed ~ WRK_UNABLE + WRK_STUDENT + PSE_ADULT_WRK_DURATION + WH_CONTRACEPTIVES_EVER + SDC_INCOME + SDC_EDU_LEVEL_AGE + SDC_GENDER + SDC_AGE_CALC,
+                 data = data,
+                 method = "glm", #using the default logistic regression;
+                 stabilize = TRUE,
+                 estimand = "ATE")
+
+IPTW
+
+summary(IPTW)
+```
+
+```{r}
+bal.plot(IPTW,
+         which="both",
+         type = "density",
+         colors = c("red","blue"))
+```
+
+```{r}
+bal.tab(IPTW, un=TRUE, thresholds = c(m=0.1))
+```
+
+```{r}
+model_iptw <- glm_weightit(diabetes ~ unemployed, 
+            family = "binomial",
+            weightit = IPTW,
+            data = data)
+
+tab_model(model_iptw)
+```
+
+## All models together
+
+```{r}
+tab_model(fit_naive, fit_no_cov, model_iptw)
+``
+```
 
