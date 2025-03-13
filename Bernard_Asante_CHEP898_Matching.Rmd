@@ -158,12 +158,30 @@ From this point, I want to match participants in the treatment to see how it wil
 
 ## Defining closeness
 
+I want to select list of variables that are associated with hypertension and match these covariates before calculating the association.
 
+Literature review has not been done but I know physical inactivity, bmi, health status, income, alcohol etc contributes to hypertention 
 
 ```{r}
-
+covariates <- data %>% 
+  select( ALC_EVER,DIS_MI_EVER,DIS_STROKE_EVER,HS_GEN_HEALTH,SMK_CIG_EVER,DIS_CARDIO_HD_EVER,PA_TOTAL_SHORT,WRK_UNABLE, WRK_STUDENT, PSE_ADULT_WRK_DURATION, WH_CONTRACEPTIVES_EVER, SDC_INCOME, SDC_EDU_LEVEL_AGE, SDC_GENDER, SDC_AGE_CALC )
+baselines <- colnames(covariates)
+baselines
 ```
 
+```{r}
+tab_baseline <- CreateTableOne(vars = baselines,
+                       data = data, 
+                       strata = "hypertension", 
+                       test = FALSE, #mute P-value calculation;
+                       smd = TRUE,
+                       addOverall = TRUE)
+
+kableone(tab_baseline, smd = TRUE, showAllLevels = FALSE )
+```
+
+
+After visual inspection, I can see major difference between cases and control in dis_mi_ever 1, dis_stroke ever 0, hs_gen_health 4, smoke_cig_ever 1, dis_cardio_hd_ever 0, wh_contraceptives_ever 1, sdc_gender = 2.
 
 
 
