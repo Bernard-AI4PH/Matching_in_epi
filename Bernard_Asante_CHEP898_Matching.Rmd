@@ -413,13 +413,13 @@ fit_no_cov <- geeglm(diabetes ~ hypertension, family=binomial("log"),
 tab_model(fit_no_cov)
 ```
 
-After matching, it can be observed that there was no association between hypertension and diabetes.  
+After matching, it can be observed that hypertention[1] has a 2.4 times higher odds of diabetes comapared to those witout hypertension.  
 
 
 ### Inverse probability of treatment weighting (IPTW)
 
 ```{r}
-IPTW <- weightit(unemployed ~ WRK_UNABLE + WRK_STUDENT + PSE_ADULT_WRK_DURATION + WH_CONTRACEPTIVES_EVER + SDC_INCOME + SDC_EDU_LEVEL_AGE + SDC_GENDER + SDC_AGE_CALC,
+IPTW <- weightit(hypertension  ~  ALC_EVER + DIS_MI_EVER + DIS_STROKE_EVER+HS_GEN_HEALTH+SMK_CIG_EVER+DIS_CARDIO_HD_EVER+PA_TOTAL_SHORT+WRK_UNABLE+ WRK_STUDENT+ PSE_ADULT_WRK_DURATION+ WH_CONTRACEPTIVES_EVER+ SDC_INCOME+ SDC_EDU_LEVEL_AGE+ SDC_GENDER+ SDC_AGE_CALC,
                  data = data,
                  method = "glm", #using the default logistic regression;
                  stabilize = TRUE,
@@ -442,7 +442,7 @@ bal.tab(IPTW, un=TRUE, thresholds = c(m=0.1))
 ```
 
 ```{r}
-model_iptw <- glm_weightit(diabetes ~ unemployed, 
+model_iptw <- glm_weightit(diabetes ~ hypertension, 
             family = "binomial",
             weightit = IPTW,
             data = data)
@@ -450,10 +450,12 @@ model_iptw <- glm_weightit(diabetes ~ unemployed,
 tab_model(model_iptw)
 ```
 
+using the inverse probability methods of treatment weighing, the odds of diabetes is 2.83 times higher in those with hypertension compared to those without hypertension
+
 ## All models together
 
 ```{r}
 tab_model(fit_naive, fit_no_cov, model_iptw)
-``
+
 ```
 
