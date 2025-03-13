@@ -1,0 +1,171 @@
+---
+title: "Matching"
+author: "Bernard Asante"
+date: "2025-03-13"
+output: 
+  html_document:
+    toc: true
+    toc_float: true 
+    toc_depth: true
+---
+
+# **Loading libraries**
+
+```{r setup, message = FALSE, warning = FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(adjustedCurves)
+library(boot)
+library(broom)
+library(geepack)
+library(here)
+library(MatchIt)
+library(tableone)
+library(sjPlot)
+library(survey)
+library(episensr) 
+library(epitools)
+library(gtsummary)
+library(cobalt)
+library(cowplot)
+library(geepack)
+library(WeightIt)
+```
+
+# **Reading dataset**
+
+## Converting variables to factor 
+
+```{r}
+data <- read_csv("mice_all_imp.csv")
+
+data <- data %>% mutate_at(3, factor)
+data <- data %>% mutate_at(5:6, factor)
+data <- data %>% mutate_at(8:12, factor)
+data <- data %>% mutate_at(15:81, factor)
+data <- data %>% mutate_at(83:93, factor)
+```
+
+## Recoding variables 
+
+I want to find out the causal association between  hypertension and diabetes mellitus using the can_path_student dataset
+
+### Diabetes
+
+Preparing diabetes variable. This will be used as an outcome variable.
+
+From the data dictionary, DIS_DIAB_EVER DICTIONARY has 3 responses:
+0 - "Never had diabetes"
+1-  "Ever had diabetes"
+2 - "Presumed-Never had diabetes"
+
+
+```{r}
+table(data$DIS_DIAB_EVER)
+```
+
+Diabetes = 0 (No diabetes ever), Diabetes = 1 (Yes diabetes ever)
+
+```{r}
+data <- data %>%
+	mutate(diabetes = case_when(
+		DIS_DIAB_EVER == 0 ~ 0,
+		DIS_DIAB_EVER == 1 ~ 1,
+		DIS_DIAB_EVER == 2 ~ 0)) %>%
+		mutate(diabetes = as.factor(diabetes))
+
+table(data$DIS_DIAB_EVER, data$diabetes)
+
+data$DIS_DIAB_EVER <- NULL  # Removing DIS_DIAB_EVER from the dataset because it has already being recoded
+```
+
+###  Hypertension 
+
+From the data dictionary, DIS_HBP_EVER DICTIONARY has 3 responses:
+0 - "Never had high blood pressure"
+1-  "Ever had  high blood pressure"
+2 - "Presumed-Never had  high blood pressure"
+
+
+```{r}
+table(data$DIS_HBP_EVER)
+```
+
+unemployed = 0 (Not unemployed), unemployed = 1 (Unemployed)
+
+```{r}
+data <- data %>%
+	mutate(hypertension = case_when(
+		DIS_HBP_EVER == 0 ~ 0,
+		DIS_HBP_EVER == 1 ~ 1,
+		DIS_HBP_EVER == 2 ~ 0)) %>%
+		mutate(hypertension = as.factor(hypertension))
+
+table(data$DIS_HBP_EVER, data$hypertension)
+
+data$DIS_HBP_EVER <- NULL  # Removing DIS_DIAB_EVER from the dataset because it has already being recoded
+```
+
+
+# **Measure of Association(CRUDE)**
+
+## Contingency table 
+
+```{r}
+contingency_table <- table(data$hypertension, data$diabetes)
+
+contingency_table
+```
+Just doing chi square analysis to see the association between the two variables. 
+
+## Chi square analysis 
+
+```{r}
+chi_square <- chisq.test(contingency_table)
+chi_square
+```
+There is a significant association between hypertension and diabetes with a p value less than 0.001.
+
+I want to find the odds having diabetes if one has hypertension( hypertension== 1)
+
+
+##  Epi tools method
+
+```{r}
+hpt <- c("No", "Yes")
+outc <- c("Case", "Control")
+dat <- matrix(c(1408, 29857, 1706, 8216),2,2,byrow=TRUE)
+dimnames(dat) <- list("Hypertension" = hpt, "Outcome" = outc)
+oddsratio(dat, rev="c")
+```
+From the output, it can be seen that those with hypertension has 4.4 times higher odds of diabetes compared to those without hypertension(p value <0.001, CI 4.09 to 4.74).
+
+## Logistic Regression(sigmoid function) 
+
+```{r}
+log_model <- data %>% 
+  glm(diabetes ~ hypertension, family = "binomial", data = .)
+
+tab_model(log_model)
+```
+It can be seen that hypertension[1] has 4.4 higher odds of diabetes with pvalue of less than 0.001 (cI = 4.09 to 4.74)
+
+
+From this point, I want to match participants in the treatment to see how it will affect the association between hypertension and diabetes. 
+
+
+# **Matching methods**
+
+## Defining closeness
+
+
+
+```{r}
+
+```
+
+
+
+
+
+
