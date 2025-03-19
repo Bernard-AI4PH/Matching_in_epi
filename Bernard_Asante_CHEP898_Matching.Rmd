@@ -124,6 +124,7 @@ Just doing chi square analysis to see the association between the two variables.
 chi_square <- chisq.test(contingency_table)
 chi_square
 ```
+
 There is a significant association between hypertension and diabetes with a p value less than 0.001.
 
 I want to find the odds having diabetes if one has hypertension( hypertension== 1)
@@ -138,6 +139,7 @@ dat <- matrix(c(1408, 29857, 1706, 8216),2,2,byrow=TRUE)
 dimnames(dat) <- list("Hypertension" = hpt, "Outcome" = outc)
 oddsratio(dat, rev="c")
 ```
+
 From the output, it can be seen that those with hypertension has 4.4 times higher odds of diabetes compared to those without hypertension(p value <0.001, CI 4.09 to 4.74).
 
 ## Logistic Regression(sigmoid function) 
@@ -148,6 +150,7 @@ log_model <- data %>%
 
 tab_model(log_model)
 ```
+
 It can be seen that hypertension[1] has 4.4 higher odds of diabetes with pvalue of less than 0.001 (cI = 4.09 to 4.74)
 
 
@@ -160,7 +163,7 @@ From this point, I want to match participants in the treatment to see how it wil
 
 I want to select list of variables that are associated with hypertension and match these covariates before calculating the association.
 
-Literature review has not been done but I know physical inactivity, bmi, health status, income, alcohol etc contributes to hypertention 
+Extensive literature review has not been done but there are evidence that support the assumption that  physical inactivity, bmi, health status, income, alcohol etc contributes to hypertention 
 
 ```{r}
 covariates <- data %>% 
@@ -209,6 +212,7 @@ knn_1_1 <- matchit(hypertension ~ ALC_EVER + DIS_MI_EVER + DIS_STROKE_EVER+HS_GE
 ```{r}
 summary(knn_1_1, un = FALSE)
 ```
+
 I can see that the standardized mean difference is around 0.00. 
 
 ```{r}
@@ -224,6 +228,7 @@ knn_data[92:96] %>%  # Displaying varirables at position 92 to 96
 ```{r}
 summary(knn_data$distance)
 ```
+
 I can see the minimum PS of 0.02, maximum as 0.90 and mean of 0.33 
 
 
@@ -237,6 +242,7 @@ ggplot(data = knn_data, aes(distance)) +
        x = "propensity score")+
   theme_minimal()
 ```
+
 we can see the majority of the propensity score is between 0.0 and 0.75 with some outliers. 
 
 
@@ -255,6 +261,7 @@ love_knn <- love.plot(knn_1_1,
 
 plot(love_knn)
 ```
+
 From the plot, it is obvious that the standardized mean differences of the adjusted covariates are distributed close to the 0.0 line and all the values are below the threshold. However, we can observe a wide distribution with some covariates like DIS_MI_0 and 1.  
 
 ### Balance plot 
@@ -266,6 +273,7 @@ bal.plot(knn_1_1,
          type = "density",
          colors = c("#a13","blue"))
 ```
+
 In the balance plot, the area of common support in the unadjusted sample, spanning a distance range of 0.00 to 0.75 with a density of up to around 2.5, has been delineated in the adjusted sample but not completely. This indicates that participants with extreme probabilities of receiving or not receiving the treatment have been excluded(not all), thereby enhancing the robustness of the analysis
 
 
@@ -275,6 +283,7 @@ In the balance plot, the area of common support in the unadjusted sample, spanni
 plot(knn_1_1, type = "density", interactive = FALSE,
      which.xs = ~ ALC_EVER + DIS_MI_EVER + DIS_STROKE_EVER+HS_GEN_HEALTH+SMK_CIG_EVER+DIS_CARDIO_HD_EVER+PA_TOTAL_SHORT)
 ```
+
 I can see little to no variation in the distribution of ALC_EVER, DIS_MI_EVER, DIS_STROKE_EVER, SMK_CIG_EVER, DIS_CARDIO_HD_EVER after matching. A slight change in distribution was seen HS_GEN_HEALTH after matching. The plot shows there is no gross change in the distribution in unmatched and macthed . 
 
 
@@ -294,6 +303,7 @@ method = "quick" performs generalized full matching, which is a form of subclass
 ```{r}
 summary(full, un = FALSE)
 ```
+
 I can see that the standardized mean difference of all the matched covariates are around 0.00. 
 
 ```{r}
@@ -309,6 +319,7 @@ full_data[92:96] %>%  # Displaying varirables at position 92 to 96
 ```{r}
 summary(full_data$distance)
 ```
+
 I can see the minimum PS of 0.019, maximum of 0.90 and mean of 0.24 
 
 
@@ -322,6 +333,7 @@ ggplot(data = full_data, aes(distance)) +
        x = "propensity score")+
   theme_minimal()
 ```
+
 we can see the majority of the propensity score is between 0.0 and 0.6 with some outliers. 
 
 
@@ -336,6 +348,7 @@ love_full <- love.plot(full,
 
 plot(love_full)
 ```
+
 From the plot, it is obvious that the standardized mean differences of the adjusted covariates are distributed close to the 0.0 line and all the values are below the threshold. The distribution is better comapred to the 1:1 NN matched method
 
 ### Balance plot of propensity score  
@@ -347,14 +360,16 @@ bal.plot(full,
          type = "density",
          colors = c("#a13","blue"))
 ```
+
 In the balance plot, the area of common support in the unadjusted sample, spanning a distance range of 0.00 to 0.4 with a density of up to 5, has been clearly delineated in the adjusted sample. This indicates that participants with extreme probabilities of receiving or not receiving the treatment have been excluded, thereby enhancing the robustness of the analysis
 
-
+###  Density plot of matched variables 
 
 ```{r}
 plot(full, type = "density", interactive = FALSE,
      which.xs = ~ ALC_EVER + DIS_MI_EVER + DIS_STROKE_EVER+HS_GEN_HEALTH+SMK_CIG_EVER+DIS_CARDIO_HD_EVER+PA_TOTAL_SHORT)
 ```
+
 I can see little to no variation in the distribution of ALC_EVER, DIS_MI_EVER<DIS_STROKE_EVER, SMK_CIG_EVER, DIS_CARDIO_HD_EVER after matching. A slight change in distribution was seen HS_GEN_HEALTH after matching. The plot shows there is no gross change in the distribution in unmatched and macthed . 
 
 
@@ -362,6 +377,7 @@ I can see little to no variation in the distribution of ALC_EVER, DIS_MI_EVER<DI
 ```{r}
 summary(full_data$weights)
 ```
+
 We can observe extreme weight of 28.36 and minimum of 0.04, however the mean is 1 which shows a reasonable weight distribution 
 
 ```{r}
@@ -380,6 +396,7 @@ summary(full_data$subclass)
 ```{r,fig.height=8}
 plot_grid(love_full, love_knn, ncol = 1, nrow = 2, labels = c('Full', 'KNN'))
 ```
+
 I can see majority of the SMD are clustered around zero on the Full method compared to the KNN macthing method. Therefore, I will use the Full matched dataset for the analysis 
 
 
@@ -403,14 +420,14 @@ full_data <- full_data %>%
 
 
 ```{r}
-fit_no_cov <- geeglm(diabetes ~ hypertension, family=binomial("log"), 
+fit_matched <- geeglm(diabetes ~ hypertension, family=binomial("log"), 
               data=full_data,
               weights=weights, ### Weights
               std.err = 'san.se', ### Equivalent to robust standard errors 
               id=subclass, #### Group by subclasses or clusters
               corstr="independence") #### Specify correlation structure
 
-tab_model(fit_no_cov)
+tab_model(fit_matched)
 ```
 
 After matching, it can be observed that hypertention[1] has a 2.4 times higher odds of diabetes comapared to those witout hypertension.  
@@ -430,6 +447,9 @@ IPTW
 summary(IPTW)
 ```
 
+
+## Balance plot of IPTW
+
 ```{r}
 bal.plot(IPTW,
          which="both",
@@ -441,6 +461,8 @@ bal.plot(IPTW,
 bal.tab(IPTW, un=TRUE, thresholds = c(m=0.1))
 ```
 
+## Building IPTW model 
+
 ```{r}
 model_iptw <- glm_weightit(diabetes ~ hypertension, 
             family = "binomial",
@@ -450,12 +472,13 @@ model_iptw <- glm_weightit(diabetes ~ hypertension,
 tab_model(model_iptw)
 ```
 
-using the inverse probability methods of treatment weighing, the odds of diabetes is 2.83 times higher in those with hypertension compared to those without hypertension
+Using the inverse probability methods of treatment weighing, the odds of diabetes is 2.83 times higher in those with hypertension compared to those without hypertension
 
 ## All models together
 
 ```{r}
-tab_model(fit_naive, fit_no_cov, model_iptw)
+tab_model(log_model,fit_naive, fit_matched, model_iptw)
 
 ```
 
+From the analysis, the unadjusted log model showed that individuals with hypertension had 4.4 times higher odds of diabetes (95% CI: 4.09–4.74, p < 0.001), while the naive model, adjusted for covariates, revealed a lower odds ratio of 2.86, indicating confounding effects in the crude estimate. After matching, the odds ratio decreased further to 2.4, and the inverse probability weighting method yielded an odds ratio of 2.83, both suggesting a persistent but reduced association between hypertension and diabetes after accounting for confounders and biases.
