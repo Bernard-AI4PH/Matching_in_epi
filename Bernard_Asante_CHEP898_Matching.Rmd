@@ -474,7 +474,7 @@ tab_model(model_iptw)
 
 Using the inverse probability methods of treatment weighing, the odds of diabetes is 2.83 times higher in those with hypertension compared to those without hypertension
 
-## All models together
+# **All models together**
 
 ```{r}
 tab_model(log_model,fit_naive, fit_matched, model_iptw)
