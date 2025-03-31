@@ -91,7 +91,7 @@ From the data dictionary, DIS_HBP_EVER DICTIONARY has 3 responses:
 table(data$DIS_HBP_EVER)
 ```
 
-unemployed = 0 (Not unemployed), unemployed = 1 (Unemployed)
+
 
 ```{r}
 data <- data %>%

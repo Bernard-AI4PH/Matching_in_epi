@@ -1566,7 +1566,6 @@ table(data$DIS_DIAB_EVER, data$diabetes)</code></pre>
 <pre><code>## 
 ##     0     1     2 
 ## 29994  9922  1271</code></pre>
-<p>unemployed = 0 (Not unemployed), unemployed = 1 (Unemployed)</p>
 <pre class="r"><code>data &lt;- data %&gt;%
     mutate(hypertension = case_when(
         DIS_HBP_EVER == 0 ~ 0,
