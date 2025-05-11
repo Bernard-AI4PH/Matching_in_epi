@@ -45,10 +45,12 @@ data <- data %>% mutate_at(8:12, factor)
 data <- data %>% mutate_at(15:81, factor)
 data <- data %>% mutate_at(83:93, factor)
 ```
+# **Objective of the analysis** 
+
+I want to find out the causal association between  hypertension and diabetes mellitus using the can_path_student dataset
 
 ## Recoding variables 
 
-I want to find out the causal association between  hypertension and diabetes mellitus using the can_path_student dataset
 
 ### Diabetes
 
@@ -61,10 +63,10 @@ From the data dictionary, DIS_DIAB_EVER DICTIONARY has 3 responses:
 
 
 ```{r}
-table(data$DIS_DIAB_EVER)
+table(data$DIS_DIAB_EVER)   #This line generates a frequency table of the variable DIS_DIAB_EVER from the can_path_student dataset. It displays how many respondents fall into each of the three categories: never had diabetes (0), ever had diabetes (1), and presumed never had diabetes (2). 
 ```
 
-Diabetes = 0 (No diabetes ever), Diabetes = 1 (Yes diabetes ever)
+I want to recode 0 and 2 as "NO" to get a binary category for the predictor variable' Diabetes = 0 (No diabetes ever), Diabetes = 1 (Yes diabetes ever)
 
 ```{r}
 data <- data %>%
@@ -72,12 +74,14 @@ data <- data %>%
 		DIS_DIAB_EVER == 0 ~ 0,
 		DIS_DIAB_EVER == 1 ~ 1,
 		DIS_DIAB_EVER == 2 ~ 0)) %>%
-		mutate(diabetes = as.factor(diabetes))
+		mutate(diabetes = as.factor(diabetes))  #This code recodes the DIS_DIAB_EVER variable into a new binary variable called diabetes. It assigns a value of 1 to individuals who have ever had diabetes (DIS_DIAB_EVER == 1), and 0 to those who never had or are presumed to never have had diabetes (values 0 and 2). The new diabetes variable is then converted into a factor for categorical analysis.
 
 table(data$DIS_DIAB_EVER, data$diabetes)
 
 data$DIS_DIAB_EVER <- NULL  # Removing DIS_DIAB_EVER from the dataset because it has already being recoded
 ```
+The output shows a cross-tabulation of the original DIS_DIAB_EVER variable and the newly created diabetes variable. It indicates that all individuals with DIS_DIAB_EVER equal to 0 or 2 were recoded to 0 in the diabetes variable. Conversely, all individuals with DIS_DIAB_EVER equal to 1 were correctly recoded to 1 in the diabetes variable.
+
 
 ###  Hypertension 
 
@@ -88,9 +92,9 @@ From the data dictionary, DIS_HBP_EVER DICTIONARY has 3 responses:
 
 
 ```{r}
-table(data$DIS_HBP_EVER)
+table(data$DIS_HBP_EVER) # This code displays a frequency table of the DIS_HBP_EVER variable from the dataset. It shows how many respondents have ever had high blood pressure, never had it, or are presumed never to have had it. 
 ```
-
+This output indicates that 29,994 individuals have never had high blood pressure, 9,922 individuals have ever had high blood pressure , and 1,271 individuals are presumed never to have had high blood pressure. 
 
 
 ```{r}
@@ -99,7 +103,7 @@ data <- data %>%
 		DIS_HBP_EVER == 0 ~ 0,
 		DIS_HBP_EVER == 1 ~ 1,
 		DIS_HBP_EVER == 2 ~ 0)) %>%
-		mutate(hypertension = as.factor(hypertension))
+		mutate(hypertension = as.factor(hypertension))   # This code creates a new binary variable hypertension by recoding the DIS_HBP_EVER variable. Individuals who have ever had high blood pressure (value 1) are coded as 1, while those who never had it or are presumed never to have had it (values 0 and 2) are coded as 0. The variable is then converted to a factor for categorical analysis.
 
 table(data$DIS_HBP_EVER, data$hypertension)
 
@@ -109,44 +113,54 @@ data$DIS_HBP_EVER <- NULL  # Removing DIS_DIAB_EVER from the dataset because it 
 
 # **Measure of Association(CRUDE)**
 
+At this point, I want to calculate associations between diabetes and hypertension before matching. This will be comapred to the output from the matching analysis. 
+
 ## Contingency table 
 
 ```{r}
-contingency_table <- table(data$hypertension, data$diabetes)
+contingency_table <- table(data$hypertension, data$diabetes)  #This line of code creates a contingency table that cross-tabulates the binary variables hypertension and diabetes. It displays the number of individuals in each combination of hypertension (yes/no) and diabetes (yes/no) status.
 
 contingency_table
 ```
-Just doing chi square analysis to see the association between the two variables. 
+The output displays a contingency table showing the relationship between the hypertension and diabetes variables. It reveals that 29,857 individuals have neither hypertension nor diabetes (0 for both). Additionally, 1,408 individuals have diabetes but not hypertension (0 for hypertension, 1 for diabetes), while 8,216 individuals have hypertension but not diabetes (1 for hypertension, 0 for diabetes). Finally, 1,706 individuals have both hypertension and diabetes (1 for both).
+
+
 
 ## Chi square analysis 
 
+Just doing chi square analysis to see the association between the two variables.
+
 ```{r}
-chi_square <- chisq.test(contingency_table)
+chi_square <- chisq.test(contingency_table)  #This code performs a Chi-square test of independence using the previously created contingency table between hypertension and diabetes. The chisq.test() function checks whether the observed distribution differs significantly from what would be expected if the two variables were independent
 chi_square
 ```
 
 There is a significant association between hypertension and diabetes with a p value less than 0.001.
 
-I want to find the odds having diabetes if one has hypertension( hypertension== 1)
-
 
 ##  Epi tools method
 
+I want to find the odds having diabetes if one has hypertension( hypertension== 1)
+
 ```{r}
+# I want to find the odds having diabetes if one has hypertension( hypertension== 1) 
+
 hpt <- c("No", "Yes")
 outc <- c("Case", "Control")
 dat <- matrix(c(1408, 29857, 1706, 8216),2,2,byrow=TRUE)
 dimnames(dat) <- list("Hypertension" = hpt, "Outcome" = outc)
-oddsratio(dat, rev="c")
+oddsratio(dat, rev="c")  # This code constructs a 2×2 matrix dat summarizing the number of diabetes cases and controls by hypertension status. It labels rows as “No” and “Yes” for hypertension and columns as “Case” and “Control” for diabetes. The oddsratio() function then calculates the odds ratio, reversing the column order (rev = "c") so that "Case" comes before "Control".
 ```
 
 From the output, it can be seen that those with hypertension has 4.4 times higher odds of diabetes compared to those without hypertension(p value <0.001, CI 4.09 to 4.74).
 
 ## Logistic Regression(sigmoid function) 
 
+This is to calculate the log reg between diabetes and hypertension before matching. I will compare the results with the output after matching. 
+
 ```{r}
 log_model <- data %>% 
-  glm(diabetes ~ hypertension, family = "binomial", data = .)
+  glm(diabetes ~ hypertension, family = "binomial", data = .)  #This code fits a logistic regression model (log_model) to predict the probability of having diabetes based on hypertension status using the glm() function with a binomial family. The tab_model() function then generates a clean summary table of the model output, including coefficients, odds ratios, confidence intervals, and significance levels.
 
 tab_model(log_model)
 ```
@@ -154,21 +168,22 @@ tab_model(log_model)
 It can be seen that hypertension[1] has 4.4 higher odds of diabetes with pvalue of less than 0.001 (cI = 4.09 to 4.74)
 
 
-From this point, I want to match participants in the treatment to see how it will affect the association between hypertension and diabetes. 
-
 
 # **Matching methods**
+
+From this point, I want to match participants in the treatment to see how it will affect the association between hypertension and diabetes. 
+
 
 ## Defining closeness
 
 I want to select list of variables that are associated with hypertension and match these covariates before calculating the association.
 
-Extensive literature review has not been done but there are evidence that support the assumption that  physical inactivity, bmi, health status, income, alcohol etc contributes to hypertention 
+Extensive literature review has not been done but there are evidence that support the assumption that  physical inactivity, bmi, health status, income, alcohol etc contributes to hypertension 
 
 ```{r}
 covariates <- data %>% 
   select( ALC_EVER,DIS_MI_EVER,DIS_STROKE_EVER,HS_GEN_HEALTH,SMK_CIG_EVER,DIS_CARDIO_HD_EVER,PA_TOTAL_SHORT,WRK_UNABLE, WRK_STUDENT, PSE_ADULT_WRK_DURATION, WH_CONTRACEPTIVES_EVER, SDC_INCOME, SDC_EDU_LEVEL_AGE, SDC_GENDER, SDC_AGE_CALC )
-baselines <- colnames(covariates)
+baselines <- colnames(covariates)   # This code selects a set of potential confounding or control variables (covariates) from the dataset and stores them in a new dataframe called covariates. These include variables related to alcohol use, cardiovascular history, physical activity, work status, income, education, gender, and age. The column names are then extracted and stored in the baselines vector.
 baselines
 ```
 
@@ -178,9 +193,9 @@ tab_baseline <- CreateTableOne(vars = baselines,
                        strata = "hypertension", 
                        test = FALSE, #mute P-value calculation;
                        smd = TRUE,
-                       addOverall = TRUE)
+                       addOverall = TRUE)  #This code creates a baseline characteristics table (tab_baseline) comparing the distribution of selected covariates across hypertension groups using the CreateTableOne() function. Standardized mean differences (SMDs) are calculated to assess covariate balance without relying on p-values. T
 
-kableone(tab_baseline, smd = TRUE, showAllLevels = FALSE )
+kableone(tab_baseline, smd = TRUE, showAllLevels = FALSE )  #he table is then rendered in a clean format using kableone()
 ```
 
 
@@ -189,13 +204,13 @@ After visual inspection, I can see major difference between cases and control in
 ## Naive regression(Adjusting Covariates)
 
 ```{r}
-fit_naive <- glm(diabetes ~ hypertension + ALC_EVER + DIS_MI_EVER + DIS_STROKE_EVER+HS_GEN_HEALTH+SMK_CIG_EVER+DIS_CARDIO_HD_EVER+PA_TOTAL_SHORT+WRK_UNABLE+ WRK_STUDENT+ PSE_ADULT_WRK_DURATION+ WH_CONTRACEPTIVES_EVER+ SDC_INCOME+ SDC_EDU_LEVEL_AGE+ SDC_GENDER+ SDC_AGE_CALC, family = "binomial", data = data)
+fit_naive <- glm(diabetes ~ hypertension + ALC_EVER + DIS_MI_EVER + DIS_STROKE_EVER+HS_GEN_HEALTH+SMK_CIG_EVER+DIS_CARDIO_HD_EVER+PA_TOTAL_SHORT+WRK_UNABLE+ WRK_STUDENT+ PSE_ADULT_WRK_DURATION+ WH_CONTRACEPTIVES_EVER+ SDC_INCOME+ SDC_EDU_LEVEL_AGE+ SDC_GENDER+ SDC_AGE_CALC, family = "binomial", data = data)   #This code fits a multivariable logistic regression model (fit_naive) to estimate the effect of hypertension on diabetes while adjusting for several covariates (such as alcohol use, cardiovascular history, smoking, income, education, gender, age). The outcome is diabetes, and the model uses a binomial family suitable for binary outcomes.
 
 tab_model(fit_naive)
 
 ```
 
-Odds ratio for all the variables has been calaculated but I will focus on the treatment variable(hypertension). We can see that after including the covariates in the logistic regression model, the odds of diabetes is 2.86 times higher among those with diabetes. Interesting!. There were confounders causing underestimation of the odd ratio in the previous model. 
+Odds ratio for all the variables has been calculated but I will focus on the treatment variable(hypertension). We can see that after including the covariates in the logistic regression model, the odds of diabetes is 2.86 times higher among those with diabetes. Interesting!. There were confounders causing overestimation of the odd ratio in the previous model(crude odds ratio = 4.4). 
 
 
 ## Matching using Nearest Neighbor(nn)
@@ -206,7 +221,7 @@ Odds ratio for all the variables has been calaculated but I will focus on the tr
 knn_1_1 <- matchit(hypertension ~ ALC_EVER + DIS_MI_EVER + DIS_STROKE_EVER+HS_GEN_HEALTH+SMK_CIG_EVER+DIS_CARDIO_HD_EVER+PA_TOTAL_SHORT+WRK_UNABLE+ WRK_STUDENT+ PSE_ADULT_WRK_DURATION+ WH_CONTRACEPTIVES_EVER+ SDC_INCOME+ SDC_EDU_LEVEL_AGE+ SDC_GENDER+ SDC_AGE_CALC,
                    data = data,
                    method = "nearest",
-                   distance = "glm")
+                   distance = "glm") #This code performs 1:1 nearest neighbor propensity score matching using the matchit() function. It estimates propensity scores using logistic regression (distance = "glm") and matches individuals with and without hypertension based on their covariates, aiming to create balanced groups for causal inference.
 ```
 
 ```{r}
@@ -219,17 +234,17 @@ I can see that the standardized mean difference is around 0.00.
 # Displaying the first 6 rows of the matched dataset 
 knn_data <- match.data(knn_1_1)
 
-knn_data[92:96] %>%  # Displaying varirables at position 92 to 96
+knn_data[92:96] %>%  # Displaying variables at position 92 to 96 because this is where the variables of interest are located based on index.
   head()
 ```
 
 ### Summary statistics of propensity score 
 
 ```{r}
-summary(knn_data$distance)
+summary(knn_data$distance)  #This code gives summary statistics of the distance variable which gives an overview of the degree of matching 
 ```
 
-I can see the minimum PS of 0.02, maximum as 0.90 and mean of 0.33 
+I can see the minimum PS of 0.027, maximum as 0.90 and mean of 0.33. This means that the treatment has been matched succesfully based on the PS or distance which is around 0
 
 
 ### Histogram of propensity score(distance)
@@ -240,15 +255,16 @@ ggplot(data = knn_data, aes(distance)) +
   labs(title = "Histogram of Propensity score",
        subtitle = "1:1 NN",
        x = "propensity score")+
-  theme_minimal()
+  theme_minimal()  # this ggplot code is to show the distribution of the distance or Propensity Score. This helps gives an overview of how the scores are distributed close or away from zero. 
 ```
 
 we can see the majority of the propensity score is between 0.0 and 0.75 with some outliers. 
 
 
 ```{r}
-head(knn_1_1$match.matrix)
+head(knn_1_1$match.matrix) #This code displays the first few rows of the match.matrix from the knn_1_1 matching object. The matrix shows which non-hypertensive individuals (control group) were matched to hypertensive individuals (treated group) based on their propensity scores.
 ```
+This output confirms that 1:1 nearest neighbor matching was successful. For example, individual 3 (hypertensive) was matched with individual 9164 (non-hypertensive) who had a similar propensity score based on the selected covariates. These matched pairs form the basis of a balanced dataset for estimating the causal effect of hypertension on diabetes while minimizing confounding.
 
 ### Love plot for the matched dataset 
 
@@ -257,7 +273,7 @@ love_knn <- love.plot(knn_1_1,
           binary = "std", 
           grid = TRUE,
           thresholds = c(m = .1),
-          colors = c("#a13","blue"))  
+          colors = c("#a13","blue"))  #This code generates a Love plot using the love.plot() function to visually assess covariate balance before and after propensity score matching. It uses standardized mean differences (SMDs) for binary and continuous covariates, adds gridlines, and sets a threshold of 0.1 to flag imbalance. Colors distinguish pre- and post-matching covariate distributions.
 
 plot(love_knn)
 ```
@@ -271,7 +287,7 @@ bal.plot(knn_1_1,
          var.name="distance",
          which="both",
          type = "density",
-         colors = c("#a13","blue"))
+         colors = c("#a13","blue"))   #This code uses bal.plot() to create density plots of the propensity score distributions (labeled as "distance") for both treated (hypertension = 1) and control (hypertension = 0) groups. The argument which = "both" shows the distributions before and after matching, allowing visual comparison.
 ```
 
 In the balance plot, the area of common support in the unadjusted sample, spanning a distance range of 0.00 to 0.75 with a density of up to around 2.5, has been delineated in the adjusted sample but not completely. This indicates that participants with extreme probabilities of receiving or not receiving the treatment have been excluded(not all), thereby enhancing the robustness of the analysis
@@ -289,19 +305,19 @@ I can see little to no variation in the distribution of ALC_EVER, DIS_MI_EVER, D
 
 ## Generalized Full matching
 
-The first match method used 1:1 nearest neighbor. 
+The first match method used 1:1 nearest neighbor.I want to do the analysis again on  
 
 ```{r}
 full <- matchit(hypertension  ~  ALC_EVER + DIS_MI_EVER + DIS_STROKE_EVER+HS_GEN_HEALTH+SMK_CIG_EVER+DIS_CARDIO_HD_EVER+PA_TOTAL_SHORT+WRK_UNABLE+ WRK_STUDENT+ PSE_ADULT_WRK_DURATION+ WH_CONTRACEPTIVES_EVER+ SDC_INCOME+ SDC_EDU_LEVEL_AGE+ SDC_GENDER+ SDC_AGE_CALC,
                    data = data,
                    method = "quick",
-                   distance = "glm")
+                   distance = "glm")  #This code applies a fast version of full matching using the matchit() function with method = "quick". It estimates propensity scores with a logistic regression (distance = "glm") and forms matched sets where each treated unit is matched to one or more controls (and vice versa) based on score proximity.
 ```
 
 method = "quick" performs generalized full matching, which is a form of subclassification wherein all units, both treatment and control (i.e., the "full" sample), are assigned to a subclass and receive at least one match. It uses an algorithm that is extremely fast compared to optimal full matching, which is why it is labeled as "quick", at the expense of true optimality. The method is described in Sävje, Higgins, & Sekhon (2021)[adopted from R help]
 
 ```{r}
-summary(full, un = FALSE)
+summary(full, un = FALSE)  # This line of code gives a summary statistics of the matched covariate but my interest is on the SMD
 ```
 
 I can see that the standardized mean difference of all the matched covariates are around 0.00. 
@@ -331,10 +347,10 @@ ggplot(data = full_data, aes(distance)) +
   labs(title = "Histogram of Propensity score",
        subtitle = "Generalized full matching",
        x = "propensity score")+
-  theme_minimal()
+  theme_minimal()  # This visualization is to show the distribution of Propensity score after matching.
 ```
 
-we can see the majority of the propensity score is between 0.0 and 0.6 with some outliers. 
+We can see the majority of the propensity score is between 0.0 and 0.6 with some outliers. 
 
 
 ###  Love plot for the matched dataset 
@@ -344,7 +360,7 @@ love_full <- love.plot(full,
           binary = "std", 
           grid = TRUE,
           thresholds = c(m = .1),
-          colors = c("#a13","blue"))  
+          colors = c("#a13","blue"))  #This code generates a Love plot using the love.plot() function to visually assess covariate balance before and after propensity score matching. It uses standardized mean differences (SMDs) for binary and continuous covariates, adds gridlines, and sets a threshold of 0.1 to flag imbalance. Colors distinguish pre- and post-matching covariate distributions.
 
 plot(love_full)
 ```
@@ -358,7 +374,7 @@ bal.plot(full,
          var.name="distance",
          which="both",
          type = "density",
-         colors = c("#a13","blue"))
+         colors = c("#a13","blue"))   #This code uses bal.plot() to create density plots of the propensity score distributions (labeled as "distance") for both treated (hypertension = 1) and control (hypertension = 0) groups. The argument which = "both" shows the distributions before and after matching, allowing visual comparison.
 ```
 
 In the balance plot, the area of common support in the unadjusted sample, spanning a distance range of 0.00 to 0.4 with a density of up to 5, has been clearly delineated in the adjusted sample. This indicates that participants with extreme probabilities of receiving or not receiving the treatment have been excluded, thereby enhancing the robustness of the analysis
@@ -367,7 +383,7 @@ In the balance plot, the area of common support in the unadjusted sample, spanni
 
 ```{r}
 plot(full, type = "density", interactive = FALSE,
-     which.xs = ~ ALC_EVER + DIS_MI_EVER + DIS_STROKE_EVER+HS_GEN_HEALTH+SMK_CIG_EVER+DIS_CARDIO_HD_EVER+PA_TOTAL_SHORT)
+     which.xs = ~ ALC_EVER + DIS_MI_EVER + DIS_STROKE_EVER+HS_GEN_HEALTH+SMK_CIG_EVER+DIS_CARDIO_HD_EVER+PA_TOTAL_SHORT) #This code generates density plots for selected covariates using the full matching object. It shows how the distribution of each covariate differs between treated (hypertension = 1) and control (hypertension = 0) groups before and after matching, helping to visually assess balance for key variables.
 ```
 
 I can see little to no variation in the distribution of ALC_EVER, DIS_MI_EVER<DIS_STROKE_EVER, SMK_CIG_EVER, DIS_CARDIO_HD_EVER after matching. A slight change in distribution was seen HS_GEN_HEALTH after matching. The plot shows there is no gross change in the distribution in unmatched and macthed . 
@@ -375,26 +391,28 @@ I can see little to no variation in the distribution of ALC_EVER, DIS_MI_EVER<DI
 
 ### Visualizing weight 
 ```{r}
-summary(full_data$weights)
+summary(full_data$weights)  #This code generates summary statistics (min, 1st quartile, median, mean, 3rd quartile, and max) for the matching weights obtained from the full matching procedure. These weights reflect how much each observation contributes to the weighted analysis, accounting for how closely it matched.
 ```
 
 We can observe extreme weight of 28.36 and minimum of 0.04, however the mean is 1 which shows a reasonable weight distribution 
 
 ```{r}
 ggplot(data = full_data, aes(weights)) + 
-        geom_histogram()
+        geom_histogram()  #This code uses ggplot2 to plot a histogram of the matching weights in full_data. The histogram visualizes the distribution of weights assigned to individuals after full matching, where weights reflects how much each unit contributes to the weighted analysis.
 ```
 
 We can see majority of weight are distributed around zero with some extreme data points after 5. 
 
 ```{r}
-summary(full_data$subclass)
+summary(full_data$subclass) #This code displays summary statistics for the subclass variable in the full_data dataset, which contains the subclass or matched set assignments generated during full matching. Each subclass groups together individuals with similar propensity scores.
 ```
+
+The matching procedure generated a large number of subclasses (over 37,000), with most subclasses containing fewer than 80 individuals, and many appearing only once (as seen in the (Other) category with 37,551 entries). This suggests that full matching created fine-grained strata, which helps achieve good covariate balance across treatment groups. However, subclasses with very small counts may contribute less stable estimates and could require weight-based adjustments in the outcome model to ensure valid inference.
 
 ## Selecting the best matching method 
 
 ```{r,fig.height=8}
-plot_grid(love_full, love_knn, ncol = 1, nrow = 2, labels = c('Full', 'KNN'))
+plot_grid(love_full, love_knn, ncol = 1, nrow = 2, labels = c('Full', 'KNN'))  # This line of code is to generate a plot grid that comapres KNN and Full matched SMD
 ```
 
 I can see majority of the SMD are clustered around zero on the Full method compared to the KNN macthing method. Therefore, I will use the Full matched dataset for the analysis 
@@ -420,6 +438,8 @@ full_data <- full_data %>%
 
 
 ```{r}
+#This code fits a weighted logistic regression model using geeglm() to estimate the effect of hypertension on diabetes in the matched dataset full_data. It uses inverse probability weights from the full matching, applies robust standard errors (std.err = 'san.se'), and clusters observations by subclass (id = subclass) to account for within-matched-set correlation.
+
 fit_matched <- geeglm(diabetes ~ hypertension, family=binomial("log"), 
               data=full_data,
               weights=weights, ### Weights
@@ -430,7 +450,7 @@ fit_matched <- geeglm(diabetes ~ hypertension, family=binomial("log"),
 tab_model(fit_matched)
 ```
 
-After matching, it can be observed that hypertention[1] has a 2.4 times higher odds of diabetes comapared to those witout hypertension.  
+After matching, it can be observed that hypertention[1] has a 2.4 times higher odds of diabetes comapared to those without hypertension.  
 
 
 ## Inverse probability of treatment weighting (IPTW)
@@ -440,13 +460,13 @@ IPTW <- weightit(hypertension  ~  ALC_EVER + DIS_MI_EVER + DIS_STROKE_EVER+HS_GE
                  data = data,
                  method = "glm", #using the default logistic regression;
                  stabilize = TRUE,
-                 estimand = "ATE")
+                 estimand = "ATE") #This code uses the weightit() function to estimate stabilized inverse probability of treatment weights (IPTWs) using logistic regression (method = "glm"). It models the probability of receiving the treatment (hypertension) based on covariates and stabilizes the weights to reduce variance. The target estimated is the Average Treatment Effect (ATE), aiming to generalize the effect of hypertension to the whole population.
 
 IPTW
 
 summary(IPTW)
 ```
-
+The weight ranges are reasonable, with no zero weights. Effective sample sizes after weighting remain large (28,764 control, 6,169 treated), indicating good data retention.
 
 ## Balance plot of IPTW
 
@@ -454,11 +474,12 @@ summary(IPTW)
 bal.plot(IPTW,
          which="both",
          type = "density",
-         colors = c("red","blue"))
+         colors = c("red","blue")) #This code produces a density plot of propensity scores before and after applying IPTW, showing how well the treated (red) and control (blue) groups overlap
 ```
+The plot demonstrates the improvement in covariate balance achieved through the matching procedure. The adjusted sample shows that the treated and control groups are now more comparable in terms of their likelihood of receiving the treatment, based on the observed characteristics.
 
 ```{r}
-bal.tab(IPTW, un=TRUE, thresholds = c(m=0.1))
+bal.tab(IPTW, un=TRUE, thresholds = c(m=0.1)) #This code evaluates covariate balance before and after weighting using bal.tab() on the IPTW object, with a 0.1 SMD threshold as the benchmark for good balance.
 ```
 
 ## Building IPTW model 
@@ -469,7 +490,7 @@ model_iptw <- glm_weightit(diabetes ~ hypertension,
             weightit = IPTW,
             data = data)
 
-tab_model(model_iptw)
+tab_model(model_iptw) #This code fits a weighted logistic regression using glm_weightit() to estimate the effect of hypertension on diabetes, applying stabilized IPTW from the IPTW object. The model is then summarized using tab_model().
 ```
 
 Using the inverse probability methods of treatment weighing, the odds of diabetes is 2.83 times higher in those with hypertension compared to those without hypertension
@@ -477,7 +498,7 @@ Using the inverse probability methods of treatment weighing, the odds of diabete
 # **All models together**
 
 ```{r}
-tab_model(log_model,fit_naive, fit_matched, model_iptw)
+tab_model(log_model,fit_naive, fit_matched, model_iptw) #This code uses tab_model() to display and compare results from four logistic regression models: unadjusted (log_model), naive adjusted (fit_naive), matched (fit_matched), and IPTW-weighted (model_iptw).
 
 ```
 
